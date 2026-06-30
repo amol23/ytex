@@ -16,7 +16,7 @@ CORS(app)
 API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 # Hardcoded list of allowed IP addresses for your instance on Render
-AUTHORIZED_IPS = ["123.45.67.89", "127.0.0.1"]
+AUTHORIZED_IPS = ["80.225.202.209", "127.0.0.1"]
 
 def is_authorized(request):
     """Check if the client IP is in the authorized list."""
