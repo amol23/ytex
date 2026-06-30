@@ -3,93 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>YouTube Metadata Extractor</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .text-wrap-custom {
-            max-width: 100%;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-        }
-        /* Enforces roughly 10 words per line via max-width */
-        .content-box {
-            max-width: 30ch;
-        }
-    </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState } = React;
+<body class="bg-gray-50 p-4 md:p-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">YouTube Metadata Extractor</h1>
+        
+        <!-- Input section -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 flex gap-2">
+            <input id="videoId" type="text" placeholder="Enter Video ID (e.g., dQw4w9WgXcQ)..." class="flex-1 p-3 border rounded-lg outline-none">
+            <button onclick="fetchMetadata()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Extract</button>
+        </div>
+        
+        <!-- Results container -->
+        <div id="result"></div>
+    </div>
 
-        function CopyButton({ text }) {
-            const copy = () => {
-                navigator.clipboard.writeText(text);
-                alert("Copied!");
-            };
-            return (
-                <button onClick={copy} className="ml-2 text-blue-600 underline text-sm">
-                    Copy
-                </button>
-            );
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text);
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(() => btn.innerText = originalText, 2000);
         }
 
-        function App() {
-            const [url, setUrl] = useState('');
-            const [data, setData] = useState(null);
-            const [loading, setLoading] = useState(false);
+        async function fetchMetadata() {
+            const videoId = document.getElementById('videoId').value;
+            const resDiv = document.getElementById('result');
+            if(!videoId) return;
 
-            const fetchMetadata = async () => {
-                setLoading(true);
-                try {
-                    const videoId = url.split('v=')[1]?.split('&')[0];
-                    const response = await fetch(`/api/video?id=${videoId}`);
-                    const json = await response.json();
-                    setData(json.items[0]);
-                } catch(e) { alert("Error fetching data"); }
-                setLoading(false);
-            };
+            const response = await fetch(`/api/video?id=${videoId}`);
+            const data = await response.json();
 
-            return (
-                <div className="max-w-md mx-auto bg-white p-6 rounded shadow-lg">
-                    <h1 className="text-xl font-bold mb-4">YouTube SEO Tool</h1>
-                    <input className="w-full border p-2 mb-2" onChange={(e) => setUrl(e.target.value)} placeholder="Paste YouTube Link" />
-                    <button className="w-full bg-blue-600 text-white p-2 rounded" onClick={fetchMetadata}>
-                        {loading ? "Fetching..." : "Extract Data"}
-                    </button>
-
-                    {data && (
-                        <div className="mt-6 space-y-4">
-                            <div>
-                                <h2 className="font-bold">Title <CopyButton text={data.snippet.title} /></h2>
-                                <p className="content-box text-sm bg-gray-50 p-2 border">{data.snippet.title}</p>
+            if (data.items) {
+                const s = data.items[0].snippet;
+                const st = data.items[0].statistics;
+                const tagsString = s.tags ? s.tags.join(', ') : '';
+                
+                resDiv.innerHTML = `
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-sm font-semibold text-gray-500 uppercase">Title</h2>
+                                <button onclick="copyToClipboard('${s.title.replace(/'/g, "\\'")}', this)" class="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Copy</button>
                             </div>
-                            <div>
-                                <h2 className="font-bold">Description <CopyButton text={data.snippet.description} /></h2>
-                                <p className="content-box text-sm bg-gray-50 p-2 border h-32 overflow-y-auto">{data.snippet.description}</p>
-                            </div>
-                            <div>
-                                <h2 className="font-bold">Tags <CopyButton text={data.snippet.tags?.join(', ')} /></h2>
-                                <p className="content-box text-sm bg-gray-50 p-2 border">{data.snippet.tags?.join(', ')}</p>
-                            </div>
-                            <div className="border-t pt-4">
-                                <h2 className="font-bold mb-2">SEO Insights</h2>
-                                <table className="w-full text-sm">
-                                    <tbody>
-                                        <tr><td>Views:</td><td>{data.statistics.viewCount}</td></tr>
-                                        <tr><td>Likes:</td><td>{data.statistics.likeCount}</td></tr>
-                                        <tr><td>Comments:</td><td>{data.statistics.commentCount}</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <p class="text-lg font-bold mt-1">${s.title}</p>
                         </div>
-                    )}
-                </div>
-            );
+                        
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-sm font-semibold text-gray-500 uppercase">Description</h2>
+                                <button onclick="copyToClipboard(\`${s.description.replace(/`/g, '\\`')}\`, this)" class="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Copy</button>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border whitespace-pre-line text-sm mt-1">${s.description}</div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-sm font-semibold text-gray-500 uppercase">Tags</h2>
+                                <button onclick="copyToClipboard('${tagsString.replace(/'/g, "\\'")}', this)" class="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Copy</button>
+                            </div>
+                            <p class="p-3 bg-gray-50 rounded-lg border text-sm font-mono mt-1">${tagsString || 'No tags found.'}</p>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <h2 class="text-lg font-bold text-gray-900 mb-4">SEO Insights</h2>
+                            <table class="w-full text-left text-sm border-collapse">
+                                <tbody>
+                                    <tr class="border-b"><th class="py-2 font-semibold">Views</th><td class="py-2">${parseInt(st.viewCount).toLocaleString()}</td></tr>
+                                    <tr class="border-b"><th class="py-2 font-semibold">Likes</th><td class="py-2">${parseInt(st.likeCount).toLocaleString()}</td></tr>
+                                    <tr class="border-b"><th class="py-2 font-semibold">Comments</th><td class="py-2">${parseInt(st.commentCount).toLocaleString()}</td></tr>
+                                    <tr class="border-b"><th class="py-2 font-semibold">Channel</th><td class="py-2">${s.channelTitle}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resDiv.innerHTML = `<p class="text-red-500 p-4 bg-red-50 rounded border border-red-200">${data.error.message}</p>`;
+            }
         }
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
