@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
-ALLOWED_IP = '1.2.3.4'
+ALLOWED_IP = '171.78.169.55'
 
 def restrict_ip(f):
     def wrapper(*args, **kwargs):
