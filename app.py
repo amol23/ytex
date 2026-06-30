@@ -10,6 +10,23 @@ CORS(app)
 # Fetch the API key from environment variables
 API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
+# Hardcoded list of allowed IP addresses
+AUTHORIZED_IPS = ["123.45.67.89", "98.76.54.32"]
+
+def is_authorized(request):
+    """
+    Check if the client IP is in the hardcoded allowed list.
+    Handles X-Forwarded-For headers which are common when hosted on platforms like Render.
+    """
+    # Check X-Forwarded-For if behind a proxy (like Render's load balancer)
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    
+    # If multiple IPs exist in X-Forwarded-For, the first one is the client
+    if ',' in client_ip:
+        client_ip = client_ip.split(',')[0].strip()
+        
+    return client_ip in AUTHORIZED_IPS
+
 def extract_video_id(url):
     """
     Robustly extract YouTube video ID from various URL formats
@@ -21,6 +38,9 @@ def extract_video_id(url):
 
 @app.route('/api/video', methods=['GET'])
 def get_metadata():
+    if not is_authorized(request):
+        return jsonify({"error": {"message": "Unauthorized IP access"}}), 403
+
     if not API_KEY:
         return jsonify({"error": {"message": "API Key not configured on server"}}), 500
 
