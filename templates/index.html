@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .text-wrap-custom {
+            max-width: 100%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        /* Enforces roughly 10 words per line via max-width */
+        .content-box {
+            max-width: 30ch;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        function CopyButton({ text }) {
+            const copy = () => {
+                navigator.clipboard.writeText(text);
+                alert("Copied!");
+            };
+            return (
+                <button onClick={copy} className="ml-2 text-blue-600 underline text-sm">
+                    Copy
+                </button>
+            );
+        }
+
+        function App() {
+            const [url, setUrl] = useState('');
+            const [data, setData] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const fetchMetadata = async () => {
+                setLoading(true);
+                try {
+                    const videoId = url.split('v=')[1]?.split('&')[0];
+                    const response = await fetch(`/api/video?id=${videoId}`);
+                    const json = await response.json();
+                    setData(json.items[0]);
+                } catch(e) { alert("Error fetching data"); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white p-6 rounded shadow-lg">
+                    <h1 className="text-xl font-bold mb-4">YouTube SEO Tool</h1>
+                    <input className="w-full border p-2 mb-2" onChange={(e) => setUrl(e.target.value)} placeholder="Paste YouTube Link" />
+                    <button className="w-full bg-blue-600 text-white p-2 rounded" onClick={fetchMetadata}>
+                        {loading ? "Fetching..." : "Extract Data"}
+                    </button>
+
+                    {data && (
+                        <div className="mt-6 space-y-4">
+                            <div>
+                                <h2 className="font-bold">Title <CopyButton text={data.snippet.title} /></h2>
+                                <p className="content-box text-sm bg-gray-50 p-2 border">{data.snippet.title}</p>
+                            </div>
+                            <div>
+                                <h2 className="font-bold">Description <CopyButton text={data.snippet.description} /></h2>
+                                <p className="content-box text-sm bg-gray-50 p-2 border h-32 overflow-y-auto">{data.snippet.description}</p>
+                            </div>
+                            <div>
+                                <h2 className="font-bold">Tags <CopyButton text={data.snippet.tags?.join(', ')} /></h2>
+                                <p className="content-box text-sm bg-gray-50 p-2 border">{data.snippet.tags?.join(', ')}</p>
+                            </div>
+                            <div className="border-t pt-4">
+                                <h2 className="font-bold mb-2">SEO Insights</h2>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td>Views:</td><td>{data.statistics.viewCount}</td></tr>
+                                        <tr><td>Likes:</td><td>{data.statistics.likeCount}</td></tr>
+                                        <tr><td>Comments:</td><td>{data.statistics.commentCount}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
